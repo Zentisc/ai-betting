@@ -1,71 +1,66 @@
+
 import pandas as pd
 
 PRED_FILE = "data/predictions.csv"
-
-BANKROLL = 1000
-BET_SIZE = 10
-
+RAW_FILE = "data/raw_matches.csv"
 
 def backtest():
 
-    df = pd.read_csv(PRED_FILE)
+    print("\nBacktest Results\n----------------")
 
-    bankroll = BANKROLL
-    bets = 0
+    preds = pd.read_csv(PRED_FILE)
+    raw = pd.read_csv(RAW_FILE)
+
+    bankroll = 100
     wins = 0
+    losses = 0
 
-    for _, row in df.iterrows():
+    for i, row in preds.iterrows():
 
-        bets_data = [
-            ("H", row["prob_home"], row["B365H"]),
-            ("D", row["prob_draw"], row["B365D"]),
-            ("A", row["prob_away"], row["B365A"]),
-        ]
+        prob_home = row["prob_home"]
+        prob_draw = row["prob_draw"]
+        prob_away = row["prob_away"]
 
-        best_value = 0
-        best_bet = None
+        odds_home = row["B365H"]
+        odds_draw = row["B365D"]
+        odds_away = row["B365A"]
 
-        for result, prob, odds in bets_data:
+        # Prediction
+        probs = {
+            "H": prob_home,
+            "D": prob_draw,
+            "A": prob_away
+        }
 
-            if pd.isna(odds):
-                continue
+        result = max(probs, key=probs.get)
 
-            value = prob * odds
+        # echtes Ergebnis
+        real = raw.iloc[i]["FTR"]
 
-            if value > best_value:
-                best_value = value
-                best_bet = (result, prob, odds)
+        odds_map = {
+            "H": odds_home,
+            "D": odds_draw,
+            "A": odds_away
+        }
 
-        # nur wetten wenn Value > 1
-        if best_value <= 1:
-            continue
+        odds = odds_map[result]
 
-        result, prob, odds = best_bet
+        bet = 1
 
-        bets += 1
-
-        if row["FTR"] == result:
-
-            profit = BET_SIZE * (odds - 1)
-            bankroll += profit
+        if real == result:
+            bankroll += bet * (odds - 1)
             wins += 1
-
         else:
+            bankroll -= bet
+            losses += 1
 
-            bankroll -= BET_SIZE
+    bets = wins + losses
 
-    winrate = wins / bets if bets > 0 else 0
-    roi = ((bankroll - BANKROLL) / BANKROLL) * 100
-
-    print("")
-    print("Backtest Results")
-    print("----------------")
     print("Bets:", bets)
     print("Wins:", wins)
-    print("Winrate:", round(winrate, 3))
+    print("Winrate:", round(wins / bets, 3))
     print("Final Bankroll:", round(bankroll, 2))
-    print("ROI:", round(roi, 2), "%")
-
+    print("ROI:", round((bankroll - 100), 2), "%")
 
 if __name__ == "__main__":
     backtest()

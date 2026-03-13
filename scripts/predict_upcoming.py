@@ -1,39 +1,47 @@
 import pandas as pd
 import joblib
 
+print("Predicting upcoming matches...")
+
 MODEL_FILE = "models/trained_model.pkl"
-FEATURE_LIST_FILE = "models/feature_list.pkl"
+FEATURE_LIST = "models/feature_list.pkl"
 
-UPCOMING_FILE = "data/upcoming_matches.csv"
+model = joblib.load(MODEL_FILE)
+features = joblib.load(FEATURE_LIST)
 
-OUTPUT_FILE = "data/upcoming_predictions.csv"
+matches = pd.read_csv("data/upcoming_matches.csv")
+history = pd.read_csv("data/raw_matches.csv")
 
+# Team strength aus historischen Spielen berechnen
+home_strength = history.groupby("HomeTeam")["FTHG"].mean()
+away_strength = history.groupby("AwayTeam")["FTAG"].mean()
 
-def predict():
+matches["home_strength"] = matches["HomeTeam"].map(home_strength)
+matches["away_strength"] = matches["AwayTeam"].map(away_strength)
 
-    print("Predicting upcoming matches...")
+matches["home_strength"] = matches["home_strength"].fillna(home_strength.mean())
+matches["away_strength"] = matches["away_strength"].fillna(away_strength.mean())
 
-    model = joblib.load(MODEL_FILE)
-    features = joblib.load(FEATURE_LIST_FILE)
+matches["strength_diff"] = matches["home_strength"] - matches["away_strength"]
 
-    df = pd.read_csv(UPCOMING_FILE)
+# Dummy implied odds falls keine vorhanden
+matches["imp_home"] = 0.33
+matches["imp_draw"] = 0.33
+matches["imp_away"] = 0.33
 
-    for f in features:
-        if f not in df.columns:
-            df[f] = 0
+# fehlende Features hinzufügen
+for f in features:
+    if f not in matches.columns:
+        matches[f] = 0
 
-    X = df[features]
+X = matches[features]
 
-    probs = model.predict_proba(X)
+probs = model.predict_proba(X)
 
-    df["prob_home"] = probs[:, 0]
-    df["prob_draw"] = probs[:, 1]
-    df["prob_away"] = probs[:, 2]
+matches["prob_home"] = probs[:,0]
+matches["prob_draw"] = probs[:,1]
+matches["prob_away"] = probs[:,2]
 
-    df.to_csv(OUTPUT_FILE, index=False)
+matches.to_csv("data/upcoming_predictions.csv", index=False)
 
-    print("Predictions saved:", OUTPUT_FILE)
-
-
-if __name__ == "__main__":
-    predict()
+print("Upcoming predictions saved")

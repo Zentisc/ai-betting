@@ -57,7 +57,7 @@ Away: {free_bet['prob_away']:.2f}
 
 ━━━━━━━━━━━━
 
-💎 Want the 4 PREMIUM AI bets?
+💎 Want the 3 PREMIUM AI bets?
 
 The VIP AI bets will be unlocked when we reach 100 members in this channel 🚀
 

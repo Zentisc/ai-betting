@@ -1,45 +1,57 @@
+
 import pandas as pd
 
-INPUT_FILE = "data/raw_matches.csv"
-OUTPUT_FILE = "data/features.csv"
+print("Building features...")
 
+df = pd.read_csv("data/raw_matches.csv")
 
-def clean_columns(df):
+# Zielvariable
+df["target"] = df["FTR"].map({
+    "H": 0,
+    "D": 1,
+    "A": 2
+})
 
-    df.columns = (
-        df.columns.astype(str)
-        .str.replace(">", "_over_", regex=False)
-        .str.replace("<", "_under_", regex=False)
-        .str.replace("[", "", regex=False)
-        .str.replace("]", "", regex=False)
-        .str.replace(" ", "_", regex=False)
-    )
+# Wettquoten → implied probability
+df["imp_home"] = 1 / df["B365H"]
+df["imp_draw"] = 1 / df["B365D"]
+df["imp_away"] = 1 / df["B365A"]
 
-    return df
+total = df["imp_home"] + df["imp_draw"] + df["imp_away"]
 
+df["imp_home"] = df["imp_home"] / total
+df["imp_draw"] = df["imp_draw"] / total
+df["imp_away"] = df["imp_away"] / total
 
-def build_features():
+# Goal difference
+df["goal_diff"] = df["FTHG"] - df["FTAG"]
 
-    df = pd.read_csv(INPUT_FILE, low_memory=False)
+# Team Strength
+home_strength = df.groupby("HomeTeam")["goal_diff"].mean()
+away_strength = df.groupby("AwayTeam")["goal_diff"].mean()
 
-    print("Dataset loaded:", len(df), "matches")
+df["home_strength"] = df["HomeTeam"].map(home_strength)
+df["away_strength"] = df["AwayTeam"].map(away_strength)
 
-    df = clean_columns(df)
+df["strength_diff"] = df["home_strength"] - df["away_strength"]
 
-    # Entferne alle In-Game Statistiken (Data Leakage)
-    forbidden = [
-        "HS","AS","HST","AST",
-        "HC","AC",
-        "HY","AY",
-        "HR","AR"
-    ]
+# fehlende Werte ersetzen
+df = df.fillna(0)
 
-    df = df.drop(columns=[c for c in forbidden if c in df.columns], errors="ignore")
+features = [
+    "imp_home",
+    "imp_draw",
+    "imp_away",
+    "home_strength",
+    "away_strength",
+    "strength_diff"
+]
 
-    df.to_csv(OUTPUT_FILE, index=False)
+X = df[features]
+y = df["target"]
 
-    print("Features saved:", OUTPUT_FILE)
+data = pd.concat([X, y], axis=1)
 
+data.to_csv("data/features.csv", index=False)
 
-if __name__ == "__main__":
-    build_features()
+print("Features built:", len(data))
