@@ -45,9 +45,11 @@ vip_bets = df.iloc[1:5]
 # FREE BET MESSAGE
 
 free_msg = f"""
-🔥 <b>AI FREE BET</b>
+🔥 AI FREE BET
 
 {free_bet['HomeTeam']} vs {free_bet['AwayTeam']}
+
+AI probabilities:
 
 Home: {free_bet['prob_home']:.2f}
 Draw: {free_bet['prob_draw']:.2f}
@@ -55,12 +57,12 @@ Away: {free_bet['prob_away']:.2f}
 
 ━━━━━━━━━━━━
 
-💎 Want the <b>4 PREMIUM AI bets</b>?
+💎 Want the 4 PREMIUM AI bets?
 
-DM the bot 👇
-@deinbetbot_bot
+The VIP AI bets will be unlocked when we reach 100 members in this channel 🚀
+
+Invite your friends to unlock the VIP bets!
 """
-
 
 # VIP MESSAGE
 
@@ -88,3 +90,5 @@ print("Sending VIP bets...")
 send_message(VIP_CHAT_ID, vip_msg)
 
 print("Telegram bets sent")
+
+df.to_csv("data/today_bets.csv", index=False)

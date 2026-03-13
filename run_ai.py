@@ -1,6 +1,6 @@
 import os
-
-import os
+import time
+from datetime import datetime
 
 def reset_pipeline():
 
@@ -18,6 +18,7 @@ def reset_pipeline():
 
 print("Resetting pipeline...")
 reset_pipeline()
+
 
 def run_pipeline():
 
@@ -45,7 +46,6 @@ def run_pipeline():
     print("Running backtest...")
 
     from scripts.backtest import backtest
-
     backtest()
 
     print("Downloading upcoming matches...")
@@ -63,5 +63,28 @@ def run_pipeline():
     os.system("python scripts/send_telegram_bets.py")
 
 
+def wait_for_results():
+
+    print("Waiting to post results...")
+
+    while True:
+
+        now = datetime.utcnow()
+
+        # Results um 02:00 UTC posten
+        if now.hour == 2 and now.minute == 0:
+
+            print("Posting results...")
+            os.system("python scripts/post_results.py")
+
+            break
+
+        # alle 10 Minuten prüfen
+        time.sleep(600)
+
+
 if __name__ == "__main__":
+
     run_pipeline()
+
+    wait_for_results()

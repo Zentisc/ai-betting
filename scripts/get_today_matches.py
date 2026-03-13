@@ -17,7 +17,9 @@ sports = [
 matches = []
 
 now = datetime.utcnow()
-limit = now + timedelta(hours=48)
+
+# Mitternacht berechnen
+midnight = datetime(now.year, now.month, now.day) + timedelta(days=1)
 
 for sport in sports:
 
@@ -31,8 +33,8 @@ for sport in sports:
         game_time = game["commence_time"]
         game_date = datetime.fromisoformat(game_time.replace("Z",""))
 
-        # nur Spiele innerhalb der nächsten 48h
-        if game_date < now or game_date > limit:
+        # nur Spiele bis Mitternacht
+        if game_date < now or game_date > midnight:
             continue
 
         home = game["home_team"]
@@ -73,4 +75,4 @@ df = pd.DataFrame(matches)
 
 df.to_csv("data/upcoming_matches.csv", index=False)
 
-print("Matches in next 48h:", len(df))
+print("Matches today:", len(df))
