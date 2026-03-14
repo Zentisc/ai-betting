@@ -1,7 +1,7 @@
 import pandas as pd
 import requests
 
-TOKEN = "DEIN_BOT_TOKEN"
+TOKEN = "8139937697:AAGel3-mAG2_yBtofHt5R1K7cpNYwiIKS6c"
 
 FREE_CHAT_ID = -1003787743236
 VIP_CHAT_ID = -1003819716884
