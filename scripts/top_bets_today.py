@@ -1,88 +1,82 @@
 import pandas as pd
 
-INPUT_FILE = "data/upcoming_predictions.csv"
+print("Finding best bets for next 48 hours...")
 
-FREE_BETS = 3
-PREMIUM_BETS = 10
-
-print("Finding top bets for next 48 hours...")
-
-df = pd.read_csv(INPUT_FILE)
+df = pd.read_csv("data/upcoming_predictions.csv")
 
 bets = []
 
 for _, row in df.iterrows():
 
-    match = f"{row['HomeTeam']} vs {row['AwayTeam']}"
+    home = row["HomeTeam"]
+    away = row["AwayTeam"]
+
+    prob_home = row["prob_home"]
+    prob_draw = row["prob_draw"]
+    prob_away = row["prob_away"]
+
+    # --- 1X2 prediction ---
+    probs_1x2 = {
+        "HOME": prob_home,
+        "DRAW": prob_draw,
+        "AWAY": prob_away
+    }
+
+    best_1x2 = max(probs_1x2, key=probs_1x2.get)
+    best_1x2_prob = probs_1x2[best_1x2]
+
+    # --- BTTS ---
+    prob_btts = min(prob_home + prob_away, 0.95)
+    prob_no_btts = 1 - prob_btts
+
+    if prob_btts > prob_no_btts:
+        btts_pick = "BTTS YES"
+        btts_prob = prob_btts
+    else:
+        btts_pick = "BTTS NO"
+        btts_prob = prob_no_btts
+
+    # --- OVER UNDER ---
+    prob_over25 = min(prob_home + prob_away + prob_draw/2, 0.95)
+    prob_under25 = 1 - prob_over25
+
+    if prob_over25 > prob_under25:
+        ou_pick = "OVER 2.5"
+        ou_prob = prob_over25
+    else:
+        ou_pick = "UNDER 2.5"
+        ou_prob = prob_under25
+
+    # --- BEST MARKET ---
+    markets = {
+        best_1x2: best_1x2_prob,
+        btts_pick: btts_prob,
+        ou_pick: ou_prob
+    }
+
+    best_market = max(markets, key=markets.get)
+    best_prob = markets[best_market]
 
     bets.append({
-        "match": match,
-        "bet": "HOME",
-        "prob": row["prob_home"],
-        "odds": row["B365H"],
-        "value": row["prob_home"] * row["B365H"]
+        "match": f"{home} vs {away}",
+        "bet": best_market,
+        "prob": round(best_prob, 2)
     })
-
-    bets.append({
-        "match": match,
-        "bet": "DRAW",
-        "prob": row["prob_draw"],
-        "odds": row["B365D"],
-        "value": row["prob_draw"] * row["B365D"]
-    })
-
-    bets.append({
-        "match": match,
-        "bet": "AWAY",
-        "prob": row["prob_away"],
-        "odds": row["B365A"],
-        "value": row["prob_away"] * row["B365A"]
-    })
-
 
 bets_df = pd.DataFrame(bets)
 
-# nur Value Bets
-bets_df = bets_df[bets_df["value"] > 1]
+# sort by probability
+bets_df = bets_df.sort_values("prob", ascending=False)
 
-# nach Value sortieren
-bets_df = bets_df.sort_values("value", ascending=False)
+# FREE bet = best
+free_bets = bets_df.head(1)
 
-free = bets_df.head(FREE_BETS)
-premium = bets_df.head(PREMIUM_BETS)
+# VIP bets = next best
+premium_bets = bets_df.head(4)
 
-print("")
-print("🔥 FREE BETS")
-print("")
+free_bets.to_csv("data/free_bets.csv", index=False)
+premium_bets.to_csv("data/premium_bets.csv", index=False)
 
-for _, row in free.iterrows():
-
-    print(row["match"])
-    print("Bet:", row["bet"])
-    print("Probability:", round(row["prob"], 2))
-    print("Odds:", row["odds"])
-    print("Value:", round(row["value"], 2))
-    print("--------------------------")
-
-
-print("")
-print("🔒 PREMIUM BETS")
-print("")
-
-for _, row in premium.iterrows():
-
-    print(row["match"])
-    print("Bet:", row["bet"])
-    print("Probability:", round(row["prob"], 2))
-    print("Odds:", row["odds"])
-    print("Value:", round(row["value"], 2))
-    print("--------------------------")
-
-
-free.to_csv("data/free_bets.csv", index=False)
-premium.to_csv("data/premium_bets.csv", index=False)
-
-print("")
 print("Saved:")
 print("data/free_bets.csv")
 print("data/premium_bets.csv")
