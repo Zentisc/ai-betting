@@ -1,57 +1,49 @@
 import pandas as pd
-import os
 
+print("Calculating value bets...")
 
-PRED_FILE = "data/predictions.csv"
-OUTPUT_FILE = "data/value_bets.csv"
+df = pd.read_csv(
+    "data/predictions.csv",
+    usecols=[
+        "HomeTeam",
+        "AwayTeam",
+        "home_win_prob",
+        "draw_prob",
+        "away_win_prob",
+        "btts_yes_prob",
+        "over25_prob"
+    ]
+)
 
+bets = []
 
-def find_odds_columns(df):
+for _, row in df.iterrows():
 
-    possible_home = ["B365H", "PSH", "MaxH", "AvgH"]
-    possible_draw = ["B365D", "PSD", "MaxD", "AvgD"]
-    possible_away = ["B365A", "PSA", "MaxA", "AvgA"]
+    match = f"{row['HomeTeam']} vs {row['AwayTeam']}"
 
-    home = next((c for c in possible_home if c in df.columns), None)
-    draw = next((c for c in possible_draw if c in df.columns), None)
-    away = next((c for c in possible_away if c in df.columns), None)
-
-    return home, draw, away
-
-
-def find_value_bets():
-
-    if not os.path.exists(PRED_FILE):
-        print("ERROR: predictions.csv not found")
-        return
-
-    df = pd.read_csv(PRED_FILE, low_memory=False)
-
-    home_col, draw_col, away_col = find_odds_columns(df)
-
-    if home_col is None:
-        print("ERROR: No odds columns found")
-        print(df.columns)
-        return
-
-    df["home_odds"] = df[home_col]
-    df["draw_odds"] = df[draw_col]
-    df["away_odds"] = df[away_col]
-
-    df["value_home"] = df["prob_home"] * df["home_odds"]
-    df["value_draw"] = df["prob_draw"] * df["draw_odds"]
-    df["value_away"] = df["prob_away"] * df["away_odds"]
-
-    value_bets = df[
-        (df["value_home"] > 1) |
-        (df["value_draw"] > 1) |
-        (df["value_away"] > 1)
+    markets = [
+        ("HOME", row["home_win_prob"]),
+        ("DRAW", row["draw_prob"]),
+        ("AWAY", row["away_win_prob"]),
+        ("BTTS YES", row["btts_yes_prob"]),
+        ("OVER 2.5", row["over25_prob"]),
     ]
 
-    value_bets.to_csv(OUTPUT_FILE, index=False)
+    best_market = max(markets, key=lambda x: x[1])
 
-    print("Value bets saved:", OUTPUT_FILE)
+    bet = best_market[0]
+    prob = best_market[1]
 
+    if prob >= 0.55:
 
-if __name__ == "__main__":
-    find_value_bets()
+        bets.append({
+            "match": match,
+            "bet": bet,
+            "prob": prob
+        })
+
+bets = pd.DataFrame(bets)
+
+bets.to_csv("data/value_bets.csv", index=False)
+
+print("Value bets saved")

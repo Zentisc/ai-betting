@@ -1,7 +1,7 @@
 import pandas as pd
 import requests
 
-TOKEN = "8139937697:AAGel3-mAG2_yBtofHt5R1K7cpNYwiIKS6c"
+TOKEN = "8139937697:AAGel3-mAG2_yBtofHt5R1K7cpNYwiIKS6c "
 
 FREE_CHAT_ID = -1003787743236
 VIP_CHAT_ID = -1003819716884
@@ -13,53 +13,70 @@ vip = pd.read_csv("data/premium_bets.csv")
 
 # ---------- FREE BET ----------
 
-row = free.iloc[0]
+if len(free) > 0:
 
-text = f"""
+    row = free.iloc[0]
+
+    text = f"""
 🔥 AI FREE BET
 
 {row['match']}
 
 BET: {row['bet']}
 
-Probability: {row['prob']}
+Probability: {round(row['prob']*100,1)}%
 
 ━━━━━━━━━━━━
 
-💎 Want the 3 PREMIUM AI bets?
+💎 Want the 4 PREMIUM AI bets?
 
-The VIP AI bets will be unlocked when we reach 100 members in this channel 🚀
-
-Invite your friends to unlock the VIP bets!
+Invite your friends to unlock VIP bets 🚀
 """
 
-requests.post(
-    f"https://api.telegram.org/bot{TOKEN}/sendMessage",
-    data={"chat_id": FREE_CHAT_ID, "text": text}
-)
+    requests.post(
+        f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+        data={"chat_id": FREE_CHAT_ID, "text": text}
+    )
 
-print("FREE bet sent")
+    print("FREE bet sent")
+
+else:
+
+    text = "No strong AI bets found today."
+
+    requests.post(
+        f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+        data={"chat_id": FREE_CHAT_ID, "text": text}
+    )
+
+    print("No free bets today")
 
 
 # ---------- VIP BETS ----------
 
-text = "💎 AI VIP BETS\n\n"
+if len(vip) > 0:
 
-for _, row in vip.iterrows():
+    text = "💎 AI VIP BETS\n\n"
 
-    text += f"""
+    for _, row in vip.iterrows():
+
+        text += f"""
 {row['match']}
 
 BET: {row['bet']}
 
-Probability: {row['prob']}
+Probability: {round(row['prob']*100,1)}%
 
 ━━━━━━━━━━━━
 """
 
-requests.post(
-    f"https://api.telegram.org/bot{TOKEN}/sendMessage",
-    data={"chat_id": VIP_CHAT_ID, "text": text}
-)
+    requests.post(
+        f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+        data={"chat_id": VIP_CHAT_ID, "text": text}
+    )
 
-print("VIP bets sent")
+    print("VIP bets sent")
+
+else:
+
+    print("No VIP bets today")

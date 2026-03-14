@@ -1,48 +1,52 @@
 import pandas as pd
 import joblib
+from predictions.monte_carlo_simulation import simulate_match
 
 print("Predicting upcoming matches...")
 
-MODEL_FILE = "models/trained_model.pkl"
-FEATURE_LIST = "models/feature_list.pkl"
-
-model = joblib.load(MODEL_FILE)
-features = joblib.load(FEATURE_LIST)
+model = joblib.load("models/trained_model.pkl")
 
 matches = pd.read_csv("data/upcoming_matches.csv")
 
-# implied probabilities aus odds
-matches["imp_home"] = 1 / matches["B365H"]
-matches["imp_draw"] = 1 / matches["B365D"]
-matches["imp_away"] = 1 / matches["B365A"]
-
-# team strength
-history = pd.read_csv("data/raw_matches.csv")
-
-home_strength = history.groupby("HomeTeam")["FTHG"].mean()
-away_strength = history.groupby("AwayTeam")["FTAG"].mean()
-
-matches["home_strength"] = matches["HomeTeam"].map(home_strength)
-matches["away_strength"] = matches["AwayTeam"].map(away_strength)
-
-matches["home_strength"] = matches["home_strength"].fillna(home_strength.mean())
-matches["away_strength"] = matches["away_strength"].fillna(away_strength.mean())
-
-matches["strength_diff"] = matches["home_strength"] - matches["away_strength"]
-
-# fehlende features
-for f in features:
-    if f not in matches.columns:
-        matches[f] = 0
+features = joblib.load("models/feature_list.pkl")
 
 X = matches[features]
 
-probs = model.predict_proba(X)
+ml_probs = model.predict_proba(X)
 
-matches["prob_home"] = probs[:,0]
-matches["prob_draw"] = probs[:,1]
-matches["prob_away"] = probs[:,2]
+predictions = []
 
-matches.to_csv("data/upcoming_predictions.csv", index=False)
+for i, row in matches.iterrows():
 
-print("Upcoming predictions saved")
+    home = row["HomeTeam"]
+    away = row["AwayTeam"]
+
+    home_xg = row.get("home_xg", 1.5)
+    away_xg = row.get("away_xg", 1.2)
+
+    poisson = simulate_match(home_xg, away_xg)
+
+    ml_home = ml_probs[i][0]
+    ml_draw = ml_probs[i][1]
+    ml_away = ml_probs[i][2]
+
+    # Ensemble Mischung
+    home_prob = (ml_home + poisson["home_win_prob"]) / 2
+    draw_prob = (ml_draw + poisson["draw_prob"]) / 2
+    away_prob = (ml_away + poisson["away_win_prob"]) / 2
+
+    predictions.append({
+        "HomeTeam": home,
+        "AwayTeam": away,
+        "home_win_prob": home_prob,
+        "draw_prob": draw_prob,
+        "away_win_prob": away_prob,
+        "over25_prob": poisson["over25_prob"],
+        "btts_yes_prob": poisson["btts_yes_prob"]
+    })
+
+predictions = pd.DataFrame(predictions)
+
+predictions.to_csv("data/predictions.csv", index=False)
+
+print("Predictions saved")

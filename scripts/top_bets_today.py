@@ -1,33 +1,22 @@
 import pandas as pd
-from scripts.advanced_match_model import get_best_bet
 
-print("Finding best bets...")
+print("Selecting top bets...")
 
-matches = pd.read_csv("data/upcoming_matches.csv")
+df = pd.read_csv("data/value_bets.csv")
 
-bets = []
+# nach Wahrscheinlichkeit sortieren
+df = df.sort_values("prob", ascending=False)
 
-for _, row in matches.iterrows():
+# pro Spiel nur ein Bet
+df = df.drop_duplicates("match")
 
-    home = row["HomeTeam"]
-    away = row["AwayTeam"]
+# Top 5
+top5 = df.head(5)
 
-    home_attack = row["home_strength"]
-    away_attack = row["away_strength"]
+free = top5.head(1)
+vip = top5.iloc[1:]
 
-    bet = get_best_bet(home, away, home_attack, away_attack)
+free.to_csv("data/free_bets.csv", index=False)
+vip.to_csv("data/premium_bets.csv", index=False)
 
-    if bet["prob"] > 0.55:
-        bets.append(bet)
-
-bets = pd.DataFrame(bets)
-
-bets = bets.sort_values("prob", ascending=False)
-
-free_bets = bets.head(1)
-vip_bets = bets.head(4)
-
-free_bets.to_csv("data/free_bets.csv", index=False)
-vip_bets.to_csv("data/premium_bets.csv", index=False)
-
-print("Bets saved")
+print("Top bets saved")
