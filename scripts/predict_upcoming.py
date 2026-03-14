@@ -10,9 +10,15 @@ model = joblib.load(MODEL_FILE)
 features = joblib.load(FEATURE_LIST)
 
 matches = pd.read_csv("data/upcoming_matches.csv")
+
+# implied probabilities aus odds
+matches["imp_home"] = 1 / matches["B365H"]
+matches["imp_draw"] = 1 / matches["B365D"]
+matches["imp_away"] = 1 / matches["B365A"]
+
+# team strength
 history = pd.read_csv("data/raw_matches.csv")
 
-# Team strength aus historischen Spielen berechnen
 home_strength = history.groupby("HomeTeam")["FTHG"].mean()
 away_strength = history.groupby("AwayTeam")["FTAG"].mean()
 
@@ -24,12 +30,7 @@ matches["away_strength"] = matches["away_strength"].fillna(away_strength.mean())
 
 matches["strength_diff"] = matches["home_strength"] - matches["away_strength"]
 
-# Dummy implied odds falls keine vorhanden
-matches["imp_home"] = 0.33
-matches["imp_draw"] = 0.33
-matches["imp_away"] = 0.33
-
-# fehlende Features hinzufügen
+# fehlende features
 for f in features:
     if f not in matches.columns:
         matches[f] = 0
