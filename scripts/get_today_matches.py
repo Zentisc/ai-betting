@@ -2,77 +2,31 @@ import requests
 import pandas as pd
 from datetime import datetime, timedelta
 
-print("Downloading matches...")
+print("Downloading upcoming matches...")
 
-API_KEY = "403d17a9599f1b46c41dc6096d91a9d5"
+url = "https://www.football-data.co.uk/fixtures.csv"
 
-sports = [
-    "soccer_epl",
-    "soccer_spain_la_liga",
-    "soccer_germany_bundesliga",
-    "soccer_italy_serie_a",
-    "soccer_france_ligue_one"
-]
+try:
+    df = pd.read_csv(url)
+except:
+    print("Could not download fixtures")
+    exit()
 
-matches = []
+df["Date"] = pd.to_datetime(df["Date"], dayfirst=True)
 
 now = datetime.utcnow()
+limit = now + timedelta(hours=48)
 
-# Mitternacht berechnen
-midnight = datetime(now.year, now.month, now.day) + timedelta(days=1)
+df = df[(df["Date"] >= now) & (df["Date"] <= limit)]
 
-for sport in sports:
+matches = pd.DataFrame()
 
-    url = f"https://api.the-odds-api.com/v4/sports/{sport}/odds/?regions=eu&markets=h2h&apiKey={API_KEY}"
+matches["HomeTeam"] = df["HomeTeam"]
+matches["AwayTeam"] = df["AwayTeam"]
+matches["B365H"] = df["B365H"]
+matches["B365D"] = df["B365D"]
+matches["B365A"] = df["B365A"]
 
-    response = requests.get(url)
-    data = response.json()
+matches.to_csv("data/upcoming_matches.csv", index=False)
 
-    for game in data:
-
-        game_time = game["commence_time"]
-        game_date = datetime.fromisoformat(game_time.replace("Z",""))
-
-        # nur Spiele bis Mitternacht
-        if game_date < now or game_date > midnight:
-            continue
-
-        home = game["home_team"]
-        away = game["away_team"]
-
-        if len(game["bookmakers"]) == 0:
-            continue
-
-        outcomes = game["bookmakers"][0]["markets"][0]["outcomes"]
-
-        home_odds = None
-        draw_odds = None
-        away_odds = None
-
-        for o in outcomes:
-
-            if o["name"] == home:
-                home_odds = o["price"]
-
-            elif o["name"] == away:
-                away_odds = o["price"]
-
-            elif o["name"].lower() == "draw":
-                draw_odds = o["price"]
-
-        if home_odds and draw_odds and away_odds:
-
-            matches.append({
-                "Date": game_date,
-                "HomeTeam": home,
-                "AwayTeam": away,
-                "B365H": home_odds,
-                "B365D": draw_odds,
-                "B365A": away_odds
-            })
-
-df = pd.DataFrame(matches)
-
-df.to_csv("data/upcoming_matches.csv", index=False)
-
-print("Matches today:", len(df))
+print("Upcoming matches:", len(matches))

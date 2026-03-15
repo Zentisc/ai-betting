@@ -1,22 +1,26 @@
-
 import pandas as pd
 import requests
+import os
 
 TOKEN = "8139937697:AAGel3-mAG2_yBtofHt5R1K7cpNYwiIKS6c"
 FREE_CHAT_ID = -1003787743236
 
 print("Posting AI results...")
 
-# Bets laden
-free_bets = pd.read_csv("data/free_bets.csv")
-vip_bets = pd.read_csv("data/premium_bets.csv")
+# prüfen ob bet files existieren
+if not os.path.exists("data/free_bet.csv"):
+    print("No bets found")
+    exit()
+
+free_bets = pd.read_csv("data/free_bet.csv")
+vip_bets = pd.read_csv("data/vip_bets.csv")
 
 bets = pd.concat([free_bets, vip_bets], ignore_index=True)
 
 # doppelte Spiele entfernen
 bets = bets.drop_duplicates(subset=["match"])
 
-# nur 5 bets
+# max 5 bets anzeigen
 bets = bets.head(5)
 
 matches = pd.read_csv("data/raw_matches.csv")
@@ -33,9 +37,9 @@ for _, bet in bets.iterrows():
 
     bet_type = bet["bet"]
 
-    if bet_type == "Home":
+    if bet_type == "HOME":
         pred = "H"
-    elif bet_type == "Draw":
+    elif bet_type == "DRAW":
         pred = "D"
     else:
         pred = "A"
@@ -45,7 +49,6 @@ for _, bet in bets.iterrows():
         (matches["AwayTeam"] == away)
     ]
 
-    # wenn Ergebnis noch nicht da
     if match.empty:
         result = "⏳ PENDING"
         results_text += f"{home} vs {away} {result}\n"
@@ -62,7 +65,8 @@ for _, bet in bets.iterrows():
 
     results_text += f"{home} vs {away} {result}\n"
 
-results_text += f"\nDaily Record:\n{wins} Wins\n{losses} Losses"
+
+results_text += f"\nDaily Record\nWins: {wins}\nLosses: {losses}"
 
 url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
 

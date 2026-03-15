@@ -1,32 +1,14 @@
 import pandas as pd
-import os
 
-VALUE_FILE = "data/value_bets.csv"
-OUTPUT_FILE = "data/top_bets.csv"
+print("Selecting top bets...")
 
+df = pd.read_csv("data/value_bets.csv")
 
-def select_top_bets():
+# richtige Spalte verwenden
+df = df.sort_values("probability", ascending=False)
 
-    if not os.path.exists(VALUE_FILE):
-        print("ERROR: value_bets.csv not found")
-        return
+top_bets = df.head(10)
 
-    df = pd.read_csv(VALUE_FILE)
+top_bets.to_csv("data/top_bets.csv", index=False)
 
-    df["max_value"] = df[[
-        "value_home",
-        "value_draw",
-        "value_away"
-    ]].max(axis=1)
-
-    df = df.sort_values("max_value", ascending=False)
-
-    top = df.head(10)
-
-    top.to_csv(OUTPUT_FILE, index=False)
-
-    print("Top bets saved:", OUTPUT_FILE)
-
-
-if __name__ == "__main__":
-    select_top_bets()
+print("Top bets saved:", len(top_bets))

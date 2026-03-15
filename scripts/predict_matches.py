@@ -1,37 +1,47 @@
 import pandas as pd
 import joblib
 
+FEATURE_FILE = "data/features.csv"
+RAW_FILE = "data/raw_matches.csv"
 MODEL_FILE = "models/trained_model.pkl"
 FEATURE_LIST = "models/feature_list.pkl"
+OUTPUT_FILE = "data/predictions.csv"
 
 print("Loading model...")
 
+features_df = pd.read_csv(FEATURE_FILE)
+raw_df = pd.read_csv(RAW_FILE)
+
 model = joblib.load(MODEL_FILE)
-features = joblib.load(FEATURE_LIST)
+feature_list = joblib.load(FEATURE_LIST)
 
-# ursprüngliche Daten laden
-raw = pd.read_csv("data/raw_matches.csv")
-
-# Feature Datensatz laden
-df = pd.read_csv("data/features.csv")
-
-X = df[features]
+X = features_df[feature_list]
 
 probs = model.predict_proba(X)
 
-df["prob_home"] = probs[:,0]
-df["prob_draw"] = probs[:,1]
-df["prob_away"] = probs[:,2]
+home = probs[:,0]
+draw = probs[:,1]
+away = probs[:,2]
 
-# Odds aus original Dataset hinzufügen
-df["B365H"] = raw["B365H"]
-df["B365D"] = raw["B365D"]
-df["B365A"] = raw["B365A"]
+temperature = 3
 
-# Teams hinzufügen (für Anzeige)
-df["HomeTeam"] = raw["HomeTeam"]
-df["AwayTeam"] = raw["AwayTeam"]
+home = home ** (1/temperature)
+draw = draw ** (1/temperature)
+away = away ** (1/temperature)
 
-df.to_csv("data/predictions.csv", index=False)
+total = home + draw + away
 
-print("Predictions saved:", len(df))
+features_df["prob_home"] = home / total
+features_df["prob_draw"] = draw / total
+features_df["prob_away"] = away / total
+
+# Teams und Odds wieder hinzufügen
+features_df["HomeTeam"] = raw_df["HomeTeam"]
+features_df["AwayTeam"] = raw_df["AwayTeam"]
+features_df["B365H"] = raw_df["B365H"]
+features_df["B365D"] = raw_df["B365D"]
+features_df["B365A"] = raw_df["B365A"]
+
+features_df.to_csv(OUTPUT_FILE, index=False)
+
+print("Predictions saved:", len(features_df))

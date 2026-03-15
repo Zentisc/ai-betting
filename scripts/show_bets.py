@@ -1,36 +1,17 @@
 import pandas as pd
-import os
-
-FILE = "data/top_bets.csv"
-
 
 def show_bets():
 
-    if not os.path.exists(FILE):
-        print("No bets found")
-        return
-
-    df = pd.read_csv(FILE)
+    df = pd.read_csv("data/top_bets.csv")
 
     print("\n🔥 TOP AI BETS\n")
 
-    for i, row in df.head(10).iterrows():
+    for _, row in df.iterrows():
 
-        print(row["HomeTeam"], "vs", row["AwayTeam"])
-
-        print(
-            "Home:",
-            round(row["prob_home"], 2),
-            "Draw:",
-            round(row["prob_draw"], 2),
-            "Away:",
-            round(row["prob_away"], 2)
-        )
-
-        print("Value:", round(row["max_value"], 2))
-
-        print("-" * 30)
-
+        print(row["match"])
+        print("Bet:", row["bet"])
+        print("Probability:", round(row["probability"]*100,1),"%")
+        print("------------------------------")
 
 if __name__ == "__main__":
     show_bets()
